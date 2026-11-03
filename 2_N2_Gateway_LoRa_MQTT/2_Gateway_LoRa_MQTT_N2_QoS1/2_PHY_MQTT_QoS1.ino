@@ -42,8 +42,8 @@ void Phy_radio_send_DL() {
     LoRa.write(PacoteDL[i]);
   }
   LoRa.endPacket();
-
-  delay(20);
+  LoRa.idle();  // Retorna ao modo standby/recepção
+  
   digitalWrite(LED_VERMELHO_PIN, LOW);
 }
 
@@ -65,7 +65,6 @@ void Phy_radio_receive_UL() {
       RSSI_dBm_UL = LoRa.packetRssi();
       SNR_UL      = LoRa.packetSnr();
 
-      delay(30);
       digitalWrite(LED_VERDE_PIN, LOW);
 
       // Chama função de envio UL agora via MQTT

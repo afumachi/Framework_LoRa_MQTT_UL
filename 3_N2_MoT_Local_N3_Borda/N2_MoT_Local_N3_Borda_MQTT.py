@@ -10,9 +10,9 @@ import os
 import pandas as pd
 import threading
 
-global comando, medidas, tempo, medida_atual, arquivo_log_dados
+global comando, medidas, tempo, medida_atual, arquivo_log_dados, num_medidas
 global Contador_pkt_DL, tempo_entre_pacotes, estado_mqtt
-global ID_sensor, ID_gateway, Pacote_DL, Pacote_UL, pacote_recebido
+global ID_sensor, ID_gateway, Pacote_DL, Pacote_UL, pacote_recebido, primeiro_pacote_recebido
 global Comando_LED_amarelo, St_LED_amarelo, Tamanho_pacote
 global BROKER, PORTA_MQTT, TOPIC_DL, TOPIC_UL, MQTT_QOS
 global broker_mqtt, porta_broker, topico_mqtt_dl, topico_mqtt_ul, qos_mqtt
@@ -48,6 +48,7 @@ Pacote_UL_payload = bytearray(Tamanho_pacote)
 comando = 0
 medidas = 100
 medida_atual = 0
+num_medidas = 0
 tempo = 2.0
 condicao_start = 0
 arquivo_log_dados = 0
@@ -63,6 +64,7 @@ perda_PK_RX = 0
 # ================ Camada MAC
 tempo_entre_pacotes = 2.0
 pacote_recebido = 0
+primeiro_pacote_recebido = 0
 
 # ================ Camada de Rede DL
 ID_sensor = 1
@@ -195,21 +197,31 @@ def ler_cmd_led_amarelo():
 
 # ========== DOWNLINK MQTT ==========
 def downlink():
-   global Contador_pkt_DL, tempo_entre_pacotes
-   global ID_sensor, ID_gateway, Pacote_DL, Pacote_UL, medida_atual
+   global Contador_pkt_DL, tempo_entre_pacotes, primeiro_pacote_recebido
+   global ID_sensor, ID_gateway, Pacote_DL, Pacote_UL, medida_atual, num_medidas
 
    for i in range(Tamanho_pacote):
        Pacote_DL[i] = 0
 
+   # Camada de Aplicação
    Comando_LED_amarelo = int(ler_cmd_led_amarelo())
    Pacote_DL[16] = Comando_LED_amarelo
 
+   # Camada de Transporte
    Pacote_DL[12] = (medida_atual >> 8) & 0xFF
-   Pacote_DL[13] = medida_atual & 0xFF         
-        
+   Pacote_DL[13] = medida_atual & 0xFF
+   Pacote_DL[14] = (num_medidas >> 8) & 0xFF
+   Pacote_DL[15] = num_medidas & 0xFF
+   
+   # Camada de Rede        
    Pacote_DL[8] = ID_sensor
    Pacote_DL[9] = ID_gateway
-   Pacote_DL[4] = int(tempo_entre_pacotes)
+
+   # Camada de MAC
+   if (primeiro_pacote_recebido == 0):      
+      Pacote_DL[4] = 1
+
+   Pacote_DL[6] = int(tempo_entre_pacotes)
                 
    Pacote_UL_status.clear()
    result = client.publish(TOPIC_DL, bytes(Pacote_DL), qos=MQTT_QOS)
@@ -226,15 +238,19 @@ def downlink():
 
 # ========== UPLINK MQTT ==========
 def uplink():
-   global Pacote_UL, Pacote_DL, medida_atual, pacote_recebido, tempo_entre_pacotes, St_LED_amarelo
+   global Pacote_UL, Pacote_DL, medida_atual, pacote_recebido, primeiro_pacote_recebido, tempo_entre_pacotes, St_LED_amarelo
 
-   Pacote_UL_novo = Pacote_UL_status.wait(timeout=tempo_entre_pacotes)
+   Pacote_UL_novo = Pacote_UL_status.wait(timeout = (tempo_entre_pacotes*1.1))
    
    if Pacote_UL_novo:
       Pacote_UL_status.clear()
       Pacote_UL = Pacote_UL_payload          
       if len(Pacote_UL) == Tamanho_pacote:
          pacote_recebido = 1
+
+         if ((pacote_recebido == 1) and (primeiro_pacote_recebido == 0)):
+            primeiro_pacote_recebido = 1
+
          St_LED_amarelo = Pacote_UL[16]
          print('Pacote = ', medida_atual, ' | Pacote UL recebido | STATUS LED = ', St_LED_amarelo)
    else:
@@ -296,9 +312,10 @@ try:
                 medida_atual = medida_atual + 1
                 print("### LoRa MQTT -> Medida: ", medida_atual, "de ", num_medidas)
                 
-                downlink()
-
-                time.sleep(tempo_entre_pacotes)
+                if (primeiro_pacote_recebido == 0):
+                   downlink()
+                
+                #time.sleep(1)#(tempo_entre_pacotes)
                 
                 pacote_recebido = 0
 
@@ -343,7 +360,12 @@ try:
                       print(Dados_log, file=Log_dados)
                       Log_dados.flush()
 
+
+                #time.sleep(0.5)
+                
                 Tempo_gasto = time.time() - Tempo_inicio_pacote
+
+
                 print('Tempo Entre Pacotes = ', Tempo_gasto)
 
              elif (medida_atual >= num_medidas):       
@@ -370,6 +392,8 @@ try:
             medida_atual = 0
             Contador_pkt_DL = 0
             perda_PK_RX = 0
+            primeiro_pacote_recebido = 0
+            pacote_recebido = 0
             arquivo_log_dados = 0
             
             # Ao parar pelo N6, salva todas as 8 variáveis com comando 0
@@ -396,6 +420,8 @@ except KeyboardInterrupt:
    except (AttributeError, NameError):
        pass
    medida_atual = 0
+   primeiro_pacote_recebido = 0
+   pacote_recebido = 0
    arquivo_log_dados = 0
    salvar_parametros_mqtt(0, num_medidas, tempo, broker_mqtt, porta_broker, topico_mqtt_dl, topico_mqtt_ul, qos_mqtt)
    print('[LoRa MQTT] Fim da Execução')

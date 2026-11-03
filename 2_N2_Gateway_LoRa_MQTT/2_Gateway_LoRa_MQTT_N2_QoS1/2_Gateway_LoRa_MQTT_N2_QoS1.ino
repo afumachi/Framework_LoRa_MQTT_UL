@@ -43,13 +43,13 @@ WiFiClient wifiClient;
 // =====================================================================
 
 // Configurações do Broker Mosquitto (Usando o broker público oficial)
-const char* MQTT_BROKER = "test.mosquitto.org";
+//const char* MQTT_BROKER = "test.mosquitto.org";
 
 // Configurações do Broker HiveMQ (Usando o broker público oficial)
 //const char* MQTT_BROKER   = "broker.hivemq.com";
 
 // Configurações do Broker HiveMQ (Usando o broker público oficial)
-//const char* MQTT_BROKER   = "www.tpm.dev.br";
+const char* MQTT_BROKER   = "www.tpm.dev.br";
 
 const int   MQTT_PORT     = 1883;
 const char* TOPIC_DL      = "mot_mqtt_194104/gateway/downlink";  // Python → ESP32
@@ -70,8 +70,13 @@ MQTTClient mqttClient(256);   // buffer de 256 bytes (read/write)
 
 void wifi_mqtt(){
   // Cadastre quantas redes você quiser (SSID, Senha)
-  wifiMulti.addAP("SSID_1", "Password_1");
-  wifiMulti.addAP("SSID_2", "Password_2");
+  wifiMulti.addAP("MJCA_FUNDOS", "21092429MJC@");
+  wifiMulti.addAP("COLETTI_ADV_CRIS", "45384609");
+
+  //wifiMulti.addAP("SSID_1", "Password_1");
+  //wifiMulti.addAP("SSID_2", "Password_2");
+  //wifiMulti.addAP("SSID_3", "Senha_3");
+  //wifiMulti.addAP("SSID_4", "Senha_4");
 
 }
 // =====================================================================
