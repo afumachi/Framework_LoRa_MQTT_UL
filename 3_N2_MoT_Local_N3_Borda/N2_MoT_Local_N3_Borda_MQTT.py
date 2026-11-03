@@ -252,7 +252,7 @@ def uplink():
             primeiro_pacote_recebido = 1
 
          St_LED_amarelo = Pacote_UL[16]
-         print('Pacote = ', medida_atual, ' | Pacote UL recebido | STATUS LED = ', St_LED_amarelo)
+         # print('Pacote = ', medida_atual, ' | Pacote UL recebido | STATUS LED = ', St_LED_amarelo)
    else:
       pacote_recebido = 0
 
@@ -314,9 +314,7 @@ try:
                 
                 if (primeiro_pacote_recebido == 0):
                    downlink()
-                
-                #time.sleep(1)#(tempo_entre_pacotes)
-                
+                               
                 pacote_recebido = 0
 
                 uplink()
@@ -360,13 +358,10 @@ try:
                       print(Dados_log, file=Log_dados)
                       Log_dados.flush()
 
-
-                #time.sleep(0.5)
                 
                 Tempo_gasto = time.time() - Tempo_inicio_pacote
 
-
-                print('Tempo Entre Pacotes = ', Tempo_gasto)
+                # print('Tempo Entre Pacotes = ', Tempo_gasto)
 
              elif (medida_atual >= num_medidas):       
                  # Término natural das medições: Salva os parâmetros com comando 0 mantendo as 8 variáveis

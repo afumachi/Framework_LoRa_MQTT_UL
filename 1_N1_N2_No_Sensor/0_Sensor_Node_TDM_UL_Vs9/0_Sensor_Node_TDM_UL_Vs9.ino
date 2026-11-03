@@ -84,13 +84,12 @@ byte PacoteUL[TAMANHO_PACOTE_UL];
 
 bool lss_mode = 0;
 bool uplink_mode = 0;
-unsigned long tempo_radio = 1000UL;                     // Tempo recebido em MAC3_TEMPO (em ms ou unidade definida pelo protocolo)
-unsigned long tempo_entre_ul = 0;                      // Tempo recebido em MAC3_TEMPO (em ms ou unidade definida pelo protocolo)
+unsigned long tempo_radio = 200UL;                     // Tempo recebido em DL[6] (em ms ou unidade definida pelo protocolo)
 
 // Variável global para armazenar o tempo da última execução
 unsigned long ultimoTempo = 0; 
 // Intervalo de tempo desejado em milissegundos
-const long intervalo = 500;
+const long intervalo = 400;
 
 // ============= CAMADA DE REDE
 // Identificação do sensor e tamanho de pacote
