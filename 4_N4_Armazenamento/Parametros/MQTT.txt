@@ -1,0 +1,8 @@
+0
+2000
+1.5
+www.tpm.dev.br
+1883
+mot_mqtt_194104/gateway/downlink
+mot_mqtt_194104/gateway/uplink
+1
