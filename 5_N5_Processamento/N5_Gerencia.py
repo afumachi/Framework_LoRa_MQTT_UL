@@ -21,6 +21,8 @@ def formatar_pt_br(valor):
 ultimo_arquivo_entrada = ""
 arquivo_excel_csv = ""
 
+pacote_perdido = 0
+
 while True:
     # Procura o último arquivo de dados brutos gravado no nível 4
     arquivo_entrada = ""
@@ -41,6 +43,7 @@ while True:
         timestamp_atual = datetime.now().strftime("%Y_%m_%d_%H-%M-%S")
         arquivo_excel_csv = os.path.join(PASTA_PROCESSADOS, f"Rodada_Gerencia_{timestamp_atual}.csv")
         print(f"\n[NOVO TESTE DETECTADO] Criando novo CSV: {arquivo_excel_csv}")
+        pacote_perdido = 0
 
     # Abre o arquivo de dados brutos
     try:
@@ -70,6 +73,8 @@ while True:
         for j in range(10):
             if ((int(partes[23+j]) != 9) and ((int(partes[32]) == 1))):
                 pacote_recebido = 1
+            else:
+                pacote_perdido = pacote_perdido + 1
 
         if pacote_recebido == 1:
             pacotes_recebidos = pacotes_recebidos + 1

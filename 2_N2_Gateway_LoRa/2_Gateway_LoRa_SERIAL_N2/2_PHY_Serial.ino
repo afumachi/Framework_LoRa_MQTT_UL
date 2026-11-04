@@ -1,8 +1,8 @@
 /*
 //  MoT LoRa | WissTek IoT
-//  Versão MQTT com QoS1: comunicação Python N2_N3 ↔ Gateway PKLoRa
+//  Versão Serial: comunicação Python N2_N3 ↔ Gateway PKLoRa
 //
-//  Camada PHY do Gateway LoRa MQTT
+//  Camada PHY do Gateway LoRa Serial
 //
 //  Última Modificação: Branquinho / Felipe / Luís Felipe / Anderson - 27/06/2026
 */
@@ -61,6 +61,8 @@ void Phy_radio_receive_UL() {
 
       RSSI_dBm_UL = LoRa.packetRssi();
       SNR_UL_bruto = LoRa.packetSnr();
+      
+      LoRa.idle(); // Retorna ao modo standby-recepção
 
       digitalWrite(LED_VERDE_PIN, LOW);
 

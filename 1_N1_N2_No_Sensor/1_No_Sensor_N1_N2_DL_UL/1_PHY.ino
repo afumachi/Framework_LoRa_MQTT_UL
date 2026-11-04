@@ -14,8 +14,9 @@ void Phy_radio_receive_DL() {
 
       RSSI_dBm_DL = LoRa.packetRssi(); // Faz a leitura da RSSI medida pelo RFM95 em dBm
       SNR_DL = LoRa.packetSnr();       // Faz a leitura da SNR medida pelo RFM95
+      LoRa.idle();  // Retorna ao modo standby/recepção
       Serial.print("[PHY] Pacote DL recebido via LoRa   : ");
-      delay(30);
+      delay(1);
       digitalWrite(LED_VERDE_PIN, LOW);
 
       //======== CHAMA A CAMADA MAC DL
@@ -66,9 +67,10 @@ void Phy_radio_send_UL() {
     LoRa.write(PacoteUL[i]);          // Envia byte a byte as informações para o RFM95
   }
   LoRa.endPacket();                   // Finaliza o envio do pacote e o RFM95 transmite o pacote para o Gateway
+  LoRa.idle();  // Retorna ao modo standby/recepção
   Serial.print("[PHY] Pacote UL transmitido via LoRa: ");
   Serial.println(contador_pkt_UL);
-  delay(20);
+  delay(1);
   digitalWrite(LED_VERMELHO_PIN, LOW);
 
 }
