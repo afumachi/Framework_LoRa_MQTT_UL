@@ -12,8 +12,8 @@
 
 // Remova o comentário da linha referente ao módulo que você está utilizando e comente a outro
 
-#define PKLORA_ESP32 // #define PKLORA_ESP32
-//#define PKLORA_NODEMCU // #define PKLORA_NODEMCU
+//#define PKLORA_ESP32 // #define PKLORA_ESP32
+#define PKLORA_NODEMCU // #define PKLORA_NODEMCU
 
 //=======================================================================
 // 2 - Biblioteca - chama o arquivo Biblioteca.h

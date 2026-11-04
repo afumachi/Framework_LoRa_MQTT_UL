@@ -20,12 +20,60 @@
 //
 */
 
+//=======================================================================
+// 0 - Escolha do Módulo - ESP32 ou NodeMCU
+//=======================================================================
+
+// Remova o comentário da linha referente ao módulo que você está utilizando e comente a outro
+
+#define PKLORA_ESP32 // #define PKLORA_ESP32
+//#define PKLORA_NODEMCU // #define PKLORA_NODEMCU
+
 // =====================================================================
 //                     1 - Bibliotecas
 // =====================================================================
 #include <SPI.h>
 #include <LoRa.h>
+
+
+#if defined(PKLORA_ESP32)
+  // ---- DECLARAÇÃO DIAGRAMA DE PINOS DO PROJETO ----
+  // Pinos utilizados para comunicação SPI entre ESP32 e RFM95 - Módulo LoRa
+
+  // ============= Pinagem na placa da PK-LoRa da ligação do RFM95 com o ESP32
+  #define SCK_PIN   5
+  #define MISO_PIN  19
+  #define MOSI_PIN  27
+  #define NSS_PIN   18
+  #define RST_PIN   14
+  #define DIO0_PIN  26
+  #define DIO1_PIN  35
+  #define DIO2_PIN  34
+
+  // Pinos dos LEDs
+  #define LED_VERMELHO_PIN  15    // PINO 15
+  #define LED_VERDE_PIN     4    // PINO 4
+  
+
+#elif defined(PKLORA_NODEMCU)
+  // ============= Pinagem na placa da PK-LoRa da ligação do RFM95 com o Node-MCU
+  #define SCK_PIN   14    // PIN D5
+  #define MISO_PIN  12    // PIN D6
+  #define MOSI_PIN  13    // PIN D7
+  #define NSS_PIN   15    // PIN D8
+  #define RST_PIN   0     // PIN D3
+  #define DIO0_PIN  5     // PIN D1
+
+  // Pinos dos LEDs
+  #define LED_VERMELHO_PIN  2    // PINO D4
+  #define LED_VERDE_PIN     4    // PINO D2
+
+#else
+  #error "Por favor, definir a placa de hardware  (PKLORA_ESP32 ou PKLORA_NODEMCU) no topo deste código!"
+#endif
+
 #include <WiFi.h>
+
 #include <WiFiMulti.h>
 #include <MQTT.h>   // 256dpi/arduino-mqtt -- instalar via Library Manager: "MQTT" by 256dpi
                     // MQTT by Joel Gaehwiler Vs. 2.5.3 (MQTT.h)
@@ -79,6 +127,7 @@ void wifi_mqtt(){
   //wifiMulti.addAP("SSID_4", "Senha_4");
 
 }
+/*
 // =====================================================================
 //                     5 - Pinagem ESP32 <-> RFM95 (Kit PKLORa Vs3.1)
 // =====================================================================
@@ -88,7 +137,7 @@ void wifi_mqtt(){
 #define NSS_PIN   18
 #define RST_PIN   14
 #define DIO0_PIN  26
-
+*/
 // =====================================================================
 //                     6 - Parâmetros LoRa
 // =====================================================================
@@ -97,13 +146,13 @@ void wifi_mqtt(){
 #define spreadingFactor       7        // Configuração SRC = 7     |  LRC=12
 #define signalBandwidth       500E3    // Configuração SRC = 500E3  |  LRC=125E3
 #define codingRateDenominator 5         // Configuração SRC = 5     |  LRC=8 
-
+/*
 // =====================================================================
 //                     7 - Pinos de LED
 // =====================================================================
 #define LED_VERMELHO_PIN 15
 #define LED_VERDE_PIN     4
-
+*/
 // =====================================================================
 //                     8 - Variáveis do Gateway
 // =====================================================================
