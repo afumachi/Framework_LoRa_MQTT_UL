@@ -57,8 +57,6 @@ def calcular_hpbw(df_resumo):
     return hpbw, theta_esq, theta_dir, G_max, G_corte
 
 
-
-
 def calcular_fbr(df_resumo):
     """
     Calcula a Relação Frente-Costas (FBR) a partir do DataFrame de resumo.
@@ -110,8 +108,6 @@ def processar_diagrama_radiacao(
     print(f"Relação Frente-Costas (FBR): {fbr:.2f} dB")
     print("------------------------------------------\n")
 
-# ... (código anterior de cálculo de df_resumo, HPBW e FBR mantido igual) ...
-
     # 5. Fechar o círculo completo de 0° a 360° para a plotagem
     if 0 in df_resumo['angulo'].values and 360 not in df_resumo['angulo'].values:
         linha_0 = df_resumo[df_resumo['angulo'] == 0].copy()
@@ -161,7 +157,7 @@ def processar_diagrama_radiacao(
     teto_radial = np.ceil(ganhos.max() / 5) * 5 + 5
     ax.set_rlim(piso_radial, teto_radial)
     
-    ax.set_title(f"Diagrama de Radiação com Incerteza (HPBW = {hpbw:.1f}°)", va='bottom', fontsize=13, pad=20)
+    ax.set_title(f"Diagrama de Radiação com Incerteza (HPBW = {hpbw:.1f}°)   |   FBR = {fbr:.1f} dB   |   Back Gain ({ang_back}°): {g_back:.2f} dBi", va='bottom', fontsize=13, pad=20)
     ax.set_rlabel_position(135)
     ax.grid(True, linestyle='--', alpha=0.6)
     ax.legend(loc='lower right', frameon=True)
@@ -176,54 +172,6 @@ def processar_diagrama_radiacao(
     
     return df_resumo
 
-'''
-    # 5. Fechar o círculo completo de 0° a 360° para a plotagem
-    if 0 in df_resumo['angulo'].values and 360 not in df_resumo['angulo'].values:
-        linha_0 = df_resumo[df_resumo['angulo'] == 0].copy()
-        linha_0['angulo'] = 360
-        df_plot = pd.concat([df_resumo, linha_0], ignore_index=True)
-    else:
-        df_plot = df_resumo.copy()
-
-    angulos_rad = np.radians(df_plot['angulo'])
-    ganhos = df_plot['ganho_dbi'].values
-
-    # 6. Configuração do Plot Polar
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': 'polar'})
-    
-    ax.set_theta_zero_location('N')
-    ax.set_theta_direction(-1)
-    
-    # Plotar curva do ganho (dBi)
-    ax.plot(angulos_rad, ganhos, color='#1f77b4', linewidth=2, label='AUT (Ganho dBi)')
-    ax.fill(angulos_rad, ganhos, color='#1f77b4', alpha=0.15)
-    
-    # Destaca o feixe de -3 dB no gráfico se calculado com sucesso
-    if not np.isnan(hpbw):
-        ax.plot([np.radians(th_esq), np.radians(th_dir)], [G_corte, G_corte], 
-                color='red', linestyle='--', linewidth=1.5, label=f'HPBW: {hpbw:.1f}° (-3 dB)')
-        ax.scatter([np.radians(th_esq), np.radians(th_dir)], [G_corte, G_corte], 
-                   color='red', zorder=5)
-
-    piso_radial = np.floor(ganhos.min() / 5) * 5 - 5
-    teto_radial = np.ceil(ganhos.max() / 5) * 5 + 5
-    ax.set_rlim(piso_radial, teto_radial)
-    
-    ax.set_title(f"Diagrama de Radiação — HPBW = {hpbw:.1f}° | FBR = {fbr:.1f} dB", va='bottom', fontsize=13, pad=20)
-    ax.set_rlabel_position(135)
-    ax.grid(True, linestyle='--', alpha=0.6)
-    ax.legend(loc='lower right', frameon=True)
-    
-    plt.tight_layout()
-    
-    if salvar_grafico:
-        plt.savefig('diagrama_radiacao.png', dpi=300)
-        print("Gráfico salvo como 'diagrama_radiacao.png'")
-        
-    plt.show()
-    
-    return df_resumo
-'''
 
 def gerar_csv_ficticio(nome_arquivo='amostras_rssi.csv', n_amostras_por_angulo=1000):
     """Gera um arquivo CSV simulando 1000 medições de RSSI por ângulo."""
