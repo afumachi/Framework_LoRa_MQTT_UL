@@ -273,10 +273,9 @@ void loop() {
   if (uplink_mode == 0){
     Phy_radio_receive_DL(); // Função que recebe os pacotes pelo rádio
   }
-
-  unsigned long tempoAtual = millis();
-
-  if(uplink_mode == 1){
+  else if(uplink_mode == 1){// era somente if aaf 09/11
+    
+    unsigned long tempoAtual = millis(); // estava fora, antes do if aaf 09/11
 
     // Verifica se a diferença entre o tempo atual e a última execução é de 500ms ou mais
     if (tempoAtual - ultimoTempo >= intervalo) {

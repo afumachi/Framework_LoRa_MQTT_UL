@@ -109,7 +109,7 @@ frame_tempo = tk.LabelFrame(root, text=" 2. Tempo entre Pacotes ", font=("Arial"
 frame_tempo.pack(fill="x", padx=15, pady=5)
 
 entry_tempo = tk.Entry(frame_tempo, font=("Arial", 10), width=10)
-entry_tempo.insert(0, "1")
+entry_tempo.insert(0, "0.2")
 entry_tempo.pack(side="left", padx=10, pady=8)
 tk.Label(frame_tempo, text="segundos").pack(side="left")
 

@@ -27,7 +27,7 @@ void Transp_radio_send_UL() {
   PacoteUL[15] = contadorUL%256; // = contadorUL & 0xFF;
 
   if (uplink_mode == 1){
-    if (contadorUL >= medidasLSS){
+    if (contadorUL > medidasLSS){ // era >= aaf 09/11
       uplink_mode = 0;
       lss_mode = 0;
       contadorUL = 0;
