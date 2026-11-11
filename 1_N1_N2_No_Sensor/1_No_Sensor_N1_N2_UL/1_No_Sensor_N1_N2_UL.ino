@@ -53,7 +53,7 @@
 
 // ============= CAMADA FÍSICA
 // Parâmetros do LoRa
-#define FREQUENCY_IN_HZ            903E6    // LoRa Frequency
+#define FREQUENCY_IN_HZ            915E6    // LoRa Frequency
 #define txPower                    14       // TX power in dBm, defaults to 17
 #define spreadingFactorSetup       7       // ranges from 6-12,default 7
 #define signalBandwidthSetup       500E3    // signal bandwidth in Hz
@@ -89,7 +89,7 @@ unsigned long tempo_radio = 200UL;                     // Tempo recebido em DL[6
 // Variável global para armazenar o tempo da última execução
 unsigned long ultimoTempo = 0; 
 // Intervalo de tempo desejado em milissegundos
-const long intervalo = 400;
+const long intervalo = 200;
 
 // ============= CAMADA DE REDE
 // Identificação do sensor e tamanho de pacote

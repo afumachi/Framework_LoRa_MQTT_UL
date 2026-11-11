@@ -26,8 +26,8 @@
 
 // Remova o comentário da linha referente ao módulo que você está utilizando e comente a outro
 
-#define PKLORA_ESP32 // #define PKLORA_ESP32
-//#define PKLORA_NODEMCU // #define PKLORA_NODEMCU
+//#define PKLORA_ESP32 // #define PKLORA_ESP32
+#define PKLORA_NODEMCU // #define PKLORA_NODEMCU
 
 // =====================================================================
 //                     1 - Bibliotecas
@@ -65,83 +65,17 @@
   #define DIO0_PIN  5     // PIN D1
 
   // Pinos dos LEDs
-  #define LED_VERMELHO_PIN  2    // PINO D4
-  #define LED_VERDE_PIN     4    // PINO D2
+  #define LED_VERMELHO_PIN  4    // PINO D4
+  #define LED_VERDE_PIN     2    // PINO D2
 
 #else
   #error "Por favor, definir a placa de hardware  (PKLORA_ESP32 ou PKLORA_NODEMCU) no topo deste código!"
 #endif
 
-#include <WiFi.h>
-
-#include <WiFiMulti.h>
-#include <MQTT.h>   // 256dpi/arduino-mqtt -- instalar via Library Manager: "MQTT" by 256dpi
-                    // MQTT by Joel Gaehwiler Vs. 2.5.3 (MQTT.h)
-
-// =====================================================================
-//                     2 - Configurações Wi-Fi
-// =====================================================================
-// Instancia o objeto WiFiMulti
-WiFiMulti wifiMulti;
-// --- Objeto Wi-Fi Client ---
-WiFiClient wifiClient;
-
-// =====================================================================
-//                     3 - Configurações MQTT
-// =====================================================================
-
-// Configurações do Broker Mosquitto (Usando o broker público oficial)
-//const char* MQTT_BROKER = "test.mosquitto.org";
-
-// Configurações do Broker HiveMQ (Usando o broker público oficial)
-//const char* MQTT_BROKER   = "broker.hivemq.com";
-
-// Configurações do Broker HiveMQ (Usando o broker público oficial)
-const char* MQTT_BROKER   = "www.tpm.dev.br";
-
-const int   MQTT_PORT     = 1883;
-const char* TOPIC_DL      = "mot_mqtt_194104/gateway/downlink";  // Python → ESP32
-const char* TOPIC_UL      = "mot_mqtt_194104/gateway/uplink";    // ESP32  → Python
-String CLIENT_ID ;         // ID único no broker através do Endereço MAC do ESP32
-
-// QoS usado nos dois sentidos (DL e UL). QoS1 = "at least once": o broker
-// confirma o recebimento (PUBACK) e a biblioteca retransmite se necessário.
-// Importante para o dado do cliente (luminosidade).
-const int MQTT_QOS = 1;
-
-// --- Objeto MQTT ---
-MQTTClient mqttClient(256);   // buffer de 256 bytes (read/write)
-
-// =====================================================================
-//                     4 - Configurações Wi-Fi
-// =====================================================================
-
-void wifi_mqtt(){
-  // Cadastre quantas redes você quiser (SSID, Senha)
-  wifiMulti.addAP("MJCA_FUNDOS", "21092429MJC@");
-  wifiMulti.addAP("COLETTI_ADV_CRIS", "45384609");
-
-  //wifiMulti.addAP("SSID_1", "Password_1");
-  //wifiMulti.addAP("SSID_2", "Password_2");
-  //wifiMulti.addAP("SSID_3", "Senha_3");
-  //wifiMulti.addAP("SSID_4", "Senha_4");
-
-}
-/*
-// =====================================================================
-//                     5 - Pinagem ESP32 <-> RFM95 (Kit PKLORa Vs3.1)
-// =====================================================================
-#define SCK_PIN    5
-#define MISO_PIN  19
-#define MOSI_PIN  27
-#define NSS_PIN   18
-#define RST_PIN   14
-#define DIO0_PIN  26
-*/
 // =====================================================================
 //                     6 - Parâmetros LoRa
 // =====================================================================
-#define FREQUENCY_IN_HZ       903E6     // Frequência de operação
+#define FREQUENCY_IN_HZ       915E6     // Frequência de operação
 #define txPower               14        // Potência de transmissão 17 dBm
 #define spreadingFactor       7        // Configuração SRC = 7     |  LRC=12
 #define signalBandwidth       500E3    // Configuração SRC = 500E3  |  LRC=125E3
@@ -187,8 +121,10 @@ void setup() {
   digitalWrite(LED_VERMELHO_PIN, LOW);
   digitalWrite(LED_VERDE_PIN,    LOW);
 
+#if defined(PKLORA_ESP32)
   // ---------- Inicia módulo LoRa RFM95 ----------
   SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, NSS_PIN);
+#endif
   LoRa.setPins(NSS_PIN, RST_PIN, DIO0_PIN);
 
   if (!LoRa.begin(FREQUENCY_IN_HZ)) {
