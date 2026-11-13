@@ -26,8 +26,8 @@
 
 // Remova o comentário da linha referente ao módulo que você está utilizando e comente a outro
 
-#define PKLORA_ESP32 // #define PKLORA_ESP32
-//#define PKLORA_NODEMCU // #define PKLORA_NODEMCU
+//#define PKLORA_ESP32 // #define PKLORA_ESP32
+#define PKLORA_NODEMCU // #define PKLORA_NODEMCU
 
 // =====================================================================
 //                     1 - Bibliotecas
@@ -75,8 +75,8 @@
 // =====================================================================
 //                     6 - Parâmetros LoRa
 // =====================================================================
-#define FREQUENCY_IN_HZ       915E6     // Frequência de operação
-#define txPower               14        // Potência de transmissão 17 dBm
+#define FREQUENCY_IN_HZ       903E6     // Frequência de operação
+#define txPower               17        // Potência de transmissão 17 dBm
 #define spreadingFactor       7        // Configuração SRC = 7     |  LRC=12
 #define signalBandwidth       500E3    // Configuração SRC = 500E3  |  LRC=125E3
 #define codingRateDenominator 5         // Configuração SRC = 5     |  LRC=8 

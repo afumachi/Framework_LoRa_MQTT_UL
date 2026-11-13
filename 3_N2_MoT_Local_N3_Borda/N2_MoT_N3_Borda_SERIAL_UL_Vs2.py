@@ -359,36 +359,6 @@ try:
                    # Outros erros inesperados durante a tentativa
                    print(f"\n[Erro inesperado na reconexão: {ex}]. Tentando novamente...")
 
-        #
-        '''
-        except (serial.SerialException, OSError, ConnectionError) as e:
-           print("\n[Aviso] Conexão com o Gateway perdida! Tentando reconectar...")
-            
-           # Tenta fechar a porta anterior se ainda existir
-           try:
-               ser.close()
-           except:
-               pass
-
-           # Loop de tentativa de reconexão a cada 3 segundos
-           while True:
-               try:
-                   time.sleep(3)
-                   ser = serial.Serial("COM" + str(n_serial), 115200, timeout=0.5, parity=serial.PARITY_NONE)
-                   ser.setDTR(False)
-                   ser.setRTS(False)
-                   time.sleep(0.1)
-                   ser.setDTR(True)
-                   ser.setRTS(True)
-                   time.sleep(1.5)
-                   ser.reset_input_buffer()
-                   ser.reset_output_buffer()
-                   print("[Sucesso] Gateway reconectado com sucesso! Retomando teste...")
-                   break
-               except Exception:
-                   print(".", end="", flush=True)
-        '''
-        
 except KeyboardInterrupt:
    print("\n[Ctrl + C] Interrompido pelo usuário.")
    try:

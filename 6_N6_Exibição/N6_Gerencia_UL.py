@@ -11,7 +11,7 @@ import math
 
 style.use("ggplot")
 
-MAX_PONTOS = 2000
+MAX_PONTOS = 10000
 cor_rssi_up = "#FF3300"#"#FF4500"
 cor_rssi_ma = "#1f77b4"
 cor_snr_up = "#FF3300"

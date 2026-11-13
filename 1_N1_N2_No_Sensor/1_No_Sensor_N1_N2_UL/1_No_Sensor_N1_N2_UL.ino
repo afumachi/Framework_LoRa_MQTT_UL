@@ -11,8 +11,8 @@
 
 // Remova o comentário da linha referente ao módulo que você está utilizando e comente a outro
 
-#define PKLORA_ESP32 // HARDWARE COM ESP32
-//#define PKLORA_NODEMCU // HARDWARE COM ESP12E - NODEMCU
+//#define PKLORA_ESP32 // HARDWARE COM ESP32
+#define PKLORA_NODEMCU // HARDWARE COM ESP12E - NODEMCU
 
 // Caso tenha sensor GPS integrado ao Módulo
 #define SEM_GPS // MoT 20 Bytes
@@ -53,11 +53,11 @@
 
 // ============= CAMADA FÍSICA
 // Parâmetros do LoRa
-#define FREQUENCY_IN_HZ            915E6    // LoRa Frequency
-#define txPower                    14       // TX power in dBm, defaults to 17
-#define spreadingFactorSetup       7       // ranges from 6-12,default 7
-#define signalBandwidthSetup       500E3    // signal bandwidth in Hz
-#define codingRateDenominatorSetup 5        // denominator of the coding rate
+#define FREQUENCY_IN_HZ            903E6    // LoRa Frequency
+#define txPower                    17       // TX power in dBm, defaults to 17
+#define spreadingFactorSetup       12       // ranges from 6-12,default 7
+#define signalBandwidthSetup       125E3    // signal bandwidth in Hz
+#define codingRateDenominatorSetup 8        // denominator of the coding rate
 
 // Habilita ou disabilita o uso CRC, por padrão o CRC não é usado.
 //#define loraCRC
