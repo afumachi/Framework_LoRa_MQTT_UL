@@ -747,6 +747,39 @@ class AplicacaoN6GPS:
 
         #add
         '''
+
+        fundo_img, fundo_extent = None, None
+        if not df.empty:
+            todos_lons = np.append(df["LONGITUDE"].to_numpy(dtype=float), gw_lon)
+            todos_lats = np.append(df["LATITUDE"].to_numpy(dtype=float), gw_lat)
+            cen_lon = float(np.median(todos_lons))
+            cen_lat = float(np.median(todos_lats))
+            span_lon = max(np.ptp(todos_lons), 0.0012)
+            span_lat = max(np.ptp(todos_lats), 0.0012)
+
+            # Janela com a proporção real do painel (largura/altura em pixels)
+            # e com folga extra nas laterais, onde o painel é mais largo
+            razao_painel = 1.9   # largura/altura típica do painel do N6
+            fator_cob = 2.2
+            fator_lat_cos = 1.0 / max(math.cos(math.radians(cen_lat)), 1e-6)
+
+            ext_lat = span_lat * fator_cob
+            ext_lon = max(span_lon * fator_cob, ext_lat * razao_painel / fator_lat_cos)
+            ext_lon = max(ext_lon, span_lon * fator_cob * 1.35)  # folga lateral extra
+
+            fundo_img, fundo_extent = baixar_fundo_google_maps(
+                cen_lon - ext_lon / 2, cen_lon + ext_lon / 2,
+                cen_lat - ext_lat / 2, cen_lat + ext_lat / 2,
+                tipo_mapa=self.tipo_mapa_var.get(),
+            )
+            self.status_gw_var.set(
+                f"Distância Nó -> GW: mín {df['DIST_GW_M'].min():.1f} m | "
+                f"média {df['DIST_GW_M'].mean():.1f} m | máx {df['DIST_GW_M'].max():.1f} m"
+            )
+        else:
+            self.status_gw_var.set("Distância Nó -> GW: --")
+        
+        '''    
         fundo_img, fundo_extent = None, None
         if not df.empty:
             todos_lons = np.append(df["LONGITUDE"].to_numpy(dtype=float), gw_lon)
@@ -767,6 +800,7 @@ class AplicacaoN6GPS:
             )
         else:
             self.status_gw_var.set("Distância Nó -> GW: --")
+        '''
         '''
         fundo_img, fundo_extent = None, None
         if not df.empty:
