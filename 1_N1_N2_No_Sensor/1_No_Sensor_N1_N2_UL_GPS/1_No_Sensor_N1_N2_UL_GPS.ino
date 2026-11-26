@@ -36,9 +36,9 @@
 // Parâmetros do LoRa
 #define FREQUENCY_IN_HZ            903E6    // LoRa Frequency
 #define txPower                    20       // TX power in dBm, defaults to 17
-#define spreadingFactorSetup       12       // ranges from 6-12,default 7
-#define signalBandwidthSetup       125E3    // signal bandwidth in Hz
-#define codingRateDenominatorSetup 8        // denominator of the coding rate
+#define spreadingFactorSetup       7       // ranges from 6-12,default 7
+#define signalBandwidthSetup       500E3    // signal bandwidth in Hz
+#define codingRateDenominatorSetup 5        // denominator of the coding rate
 
 // Habilita ou disabilita o uso CRC, por padrão o CRC não é usado.
 //#define loraCRC
@@ -70,7 +70,7 @@ unsigned long tempo_radio = 200UL;                     // Tempo recebido em DL[6
 // Variável global para armazenar o tempo da última execução
 unsigned long ultimoTempo = 0; 
 // Intervalo de tempo desejado em milissegundos
-const long intervalo = 100;
+const long intervalo = 400;
 
 // ============= CAMADA DE REDE
 // Identificação do sensor e tamanho de pacote
