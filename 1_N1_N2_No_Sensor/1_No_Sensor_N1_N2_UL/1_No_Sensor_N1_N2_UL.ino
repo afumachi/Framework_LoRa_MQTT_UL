@@ -55,9 +55,9 @@
 // Parâmetros do LoRa
 #define FREQUENCY_IN_HZ            903E6    // LoRa Frequency
 #define txPower                    17       // TX power in dBm, defaults to 17
-#define spreadingFactorSetup       12       // ranges from 6-12,default 7
-#define signalBandwidthSetup       125E3    // signal bandwidth in Hz
-#define codingRateDenominatorSetup 8        // denominator of the coding rate
+#define spreadingFactorSetup       7       // ranges from 6-12,default 7
+#define signalBandwidthSetup       500E3    // signal bandwidth in Hz
+#define codingRateDenominatorSetup 5        // denominator of the coding rate
 
 // Habilita ou disabilita o uso CRC, por padrão o CRC não é usado.
 //#define loraCRC

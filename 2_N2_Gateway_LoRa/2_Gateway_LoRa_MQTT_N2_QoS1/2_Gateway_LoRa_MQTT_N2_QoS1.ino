@@ -29,6 +29,9 @@
 #define PKLORA_ESP32 // #define PKLORA_ESP32
 //#define PKLORA_NODEMCU // #define PKLORA_NODEMCU
 
+// Caso tenha sensor GPS integrado aos Módulos Nó Sensor
+//#define SEM_GPS // MoT 20 Bytes
+#define GPS_INTEGRADO // MoT 30 Bytes
 // =====================================================================
 //                     1 - Bibliotecas
 // =====================================================================
@@ -156,10 +159,20 @@ void wifi_mqtt(){
 // =====================================================================
 //                     8 - Variáveis do Gateway
 // =====================================================================
-#define Tamanho_pacote 20
 
-byte  PacoteDL[Tamanho_pacote];
-byte  PacoteUL[Tamanho_pacote];
+// ============== CAMADA MAC
+
+#define TAMANHO_PACOTE_DL 20
+
+#if defined(GPS_INTEGRADO)
+  #define TAMANHO_PACOTE_UL 30
+#elif defined(SEM_GPS)
+  #define TAMANHO_PACOTE_UL 20
+#endif
+
+byte PacoteDL[TAMANHO_PACOTE_DL];
+byte PacoteUL[TAMANHO_PACOTE_UL];
+
 uint8_t   ID_gateway;
 
 int       RSSI_dBm_UL;
@@ -174,7 +187,7 @@ int       Conta_Pacote_DL = 0;
 
 // --- Buffer e flag para o pacote DL recebido via MQTT ---
 volatile bool mqtt_dl_disponivel = false;
-byte          mqtt_dl_payload[Tamanho_pacote];
+byte          mqtt_dl_payload[TAMANHO_PACOTE_DL];
 
 // =====================================================================
 //                    10 - Setup

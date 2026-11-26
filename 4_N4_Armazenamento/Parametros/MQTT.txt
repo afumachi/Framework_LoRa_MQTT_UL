@@ -1,6 +1,6 @@
 0
-1000
-0.5
+30000
+4.5
 www.tpm.dev.br
 1883
 mot_mqtt_194104/gateway/downlink

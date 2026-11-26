@@ -15,7 +15,7 @@ void Phy_mqtt_receive_DL() {
     mqtt_dl_disponivel = false;
 
     // Copia payload recebido para PacoteDL
-    for (int i = 0; i < Tamanho_pacote; i++) {
+    for (int i = 0; i < TAMANHO_PACOTE_DL; i++) {
       PacoteDL[i] = mqtt_dl_payload[i];
     }
     ID_gateway = PacoteDL[10];       // Identifica o gateway
@@ -38,7 +38,7 @@ void Phy_radio_send_DL() {
   digitalWrite(LED_VERMELHO_PIN, HIGH);
 
   LoRa.beginPacket();
-  for (int i = 0; i < Tamanho_pacote; i++) {
+  for (int i = 0; i < TAMANHO_PACOTE_DL; i++) {
     LoRa.write(PacoteDL[i]);
   }
   LoRa.endPacket();
@@ -53,12 +53,12 @@ void Phy_radio_receive_UL() {
 
   uint8_t packetSize = LoRa.parsePacket();
   if (packetSize > 0) {
-    if (packetSize >= Tamanho_pacote) {
+    if (packetSize >= TAMANHO_PACOTE_UL) {
       
       // Pisca LED Verde → RX confirmado
       digitalWrite(LED_VERDE_PIN, HIGH);
       
-      for (int i = 0; i < Tamanho_pacote; i++) {
+      for (int i = 0; i < TAMANHO_PACOTE_UL; i++) {
         PacoteUL[i] = LoRa.read();
       }
 
@@ -105,7 +105,7 @@ void Phy_mqtt_send_UL() {
   // Importante para o dado de luminosidade, que é a peça central do framework:
   // o broker confirma (PUBACK) e a biblioteca retransmite se necessário.
   if (mqttClient.connected()) {
-    bool ok = mqttClient.publish(TOPIC_UL, (char*)PacoteUL, Tamanho_pacote, false, MQTT_QOS);
+    bool ok = mqttClient.publish(TOPIC_UL, (char*)PacoteUL, TAMANHO_PACOTE_UL, false, MQTT_QOS);
     if (ok) {
       Serial.println("[PHY] Pacote UL publicado via MQTT (QoS1).");
     } else {
@@ -128,7 +128,7 @@ void Phy_mqtt_send_UL() {
 void mqtt_callback(MQTTClient *client, char topic[], char bytes[], int length) {
   if (strcmp(topic, TOPIC_DL) == 0) {
     if (length >= Tamanho_pacote) {
-      for (int i = 0; i < Tamanho_pacote; i++) {
+      for (int i = 0; i < TAMANHO_PACOTE_DL; i++) {
         mqtt_dl_payload[i] = (byte)bytes[i];
       }
       mqtt_dl_disponivel = true;   // sinaliza para o loop principal

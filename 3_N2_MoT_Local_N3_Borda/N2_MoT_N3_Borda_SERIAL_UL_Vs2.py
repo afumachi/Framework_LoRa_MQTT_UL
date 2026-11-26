@@ -20,7 +20,6 @@ Tamanho_pacote = 20
 Pacote_DL = [0]*Tamanho_pacote
 PacoteUL  = [0]*Tamanho_pacote
 
-
 # Variáveis de Controle
 comando = 0
 medidas = 100
