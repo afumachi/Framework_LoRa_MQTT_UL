@@ -137,13 +137,14 @@ MQTTClient mqttClient(256);   // buffer de 256 bytes (read/write)
 
 void wifi_mqtt(){
   // Cadastre quantas redes você quiser (SSID, Senha)
-
-  wifiMulti.addAP("CHACARA BBC", "Ailton1960#");
 	
 	wifiMulti.addAP("aafwifi", "aaf12345678");
-	wifiMulti.addAP("Claro-EB66", "54b80a7deb66");
   
   wifiMulti.addAP("MJCA_FUNDOS", "21092429MJC@");
+  wifiMulti.addAP("CHACARA BBC", "Ailton1960#");
+
+	wifiMulti.addAP("Claro-EB66", "54b80a7deb66");
+
   wifiMulti.addAP("COLETTI_ADV_CRIS", "45384609");
 
   //wifiMulti.addAP("SSID_1", "Password_1");
@@ -158,7 +159,7 @@ void wifi_mqtt(){
 // =====================================================================
 #define FREQUENCY_IN_HZ       903E6     // Frequência de operação
 #define txPower               20        // Potência de transmissão 17 dBm
-#define spreadingFactor       7        // Configuração SRC = 7     |  LRC=12
+#define spreadingFactor       7        // Configuração SRC = 7      |  LRC=12
 #define signalBandwidth       500E3    // Configuração SRC = 500E3  |  LRC=125E3
 #define codingRateDenominator 5         // Configuração SRC = 5     |  LRC=8 
 

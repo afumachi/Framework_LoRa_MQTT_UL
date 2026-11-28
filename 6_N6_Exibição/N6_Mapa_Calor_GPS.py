@@ -1,5 +1,5 @@
-# Exibição | Gerência [RSSI, SNR e PSR] + Mapa de Calor GPS 2D | N6 | WissTek-IoT | Framework LoRa
-# ====== Nível 6 - Gerência & Cobertura GPS ======
+# Exibição | Mapa de Calor GPS 2D [RSSI e SNR] | N6_Mapa_Calor | WissTek-IoT | Framework LoRa
+# ====== Gerência GPS ======
 import os
 import io
 import glob
@@ -19,90 +19,21 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 
 style.use("ggplot")
 
-# ===================== CONSTANTES GERAIS =====================
-MAX_PONTOS = 10000
-cor_rssi_up = "#FF3300"
-cor_rssi_ma = "#1f77b4"
-cor_snr_up = "#FF3300"
-cor_snr_ma = "#1f77b4"
-cor_psr = "#2ca02c"
-
+# Pastas e arquivos do Framework LoRa
 PASTA_N4 = "../4_N4_Armazenamento"
 PASTA_PARAMETROS = os.path.join(PASTA_N4, "Parametros")
 PASTA_PROCESSADOS = os.path.join(PASTA_N4, "Dados_Processados")
 PASTA_CACHE_TILES = os.path.join(PASTA_PARAMETROS, "cache_google_maps")
-
-ARQUIVO_PARAMETROS = os.path.join(PASTA_PARAMETROS, "dados_processamento.txt")
 ARQUIVO_GW_GPS = os.path.join(PASTA_PARAMETROS, "GW_GPS.txt")
 
-os.makedirs(PASTA_N4, exist_ok=True)
 os.makedirs(PASTA_PARAMETROS, exist_ok=True)
 os.makedirs(PASTA_PROCESSADOS, exist_ok=True)
 os.makedirs(PASTA_CACHE_TILES, exist_ok=True)
 
+# Colormap térmico: valores mais altos (quentes) -> vermelho/laranja; mais baixos (frios) -> azul/ciano
 CMAP_CALOR = "turbo"
-arquivo_csv_atual_ref = {"caminho": None}
 
 
-# ===================== FUNÇÕES AUXILIARES GERÊNCIA (ABA 1) =====================
-def salvar_parametros_n5(entry_janela_rssi, entry_janela_snr):
-    try:
-        j_rssi = str(int(entry_janela_rssi.get()))
-        j_snr = str(int(entry_janela_snr.get()))
-        with open(ARQUIVO_PARAMETROS, "w", encoding="utf-8") as f:
-            f.write(f"JANELA_RSSI={j_rssi}\n")
-            f.write(f"JANELA_SNR={j_snr}\n")
-    except ValueError:
-        pass
-
-
-def _parse_float_ou_nan(texto):
-    if texto is None:
-        return math.nan
-    limpo = str(texto).strip().replace(",", ".")
-    if limpo == "":
-        return math.nan
-    try:
-        val = float(limpo)
-        return val if math.isfinite(val) else math.nan
-    except ValueError:
-        return math.nan
-
-
-def _valores_validos(serie):
-    return [x for x in serie if x is not None and not math.isnan(x)]
-
-
-def calcular_estatisticas_completas(lista):
-    valores = _valores_validos(lista)
-    n = len(valores)
-    if n == 0:
-        return 0.0, 0.0, 0.0, 0.0
-    media = sum(valores) / n
-    maximo = max(valores)
-    minimo = min(valores)
-    if n < 2:
-        desvio = 0.0
-    else:
-        var = sum((x - media) ** 2 for x in valores) / (n - 1)
-        desvio = math.sqrt(var)
-    return media, desvio, maximo, minimo
-
-
-def _alinhar_comprimentos(series, alvo_len):
-    """Garante que todas as séries tenham exatamente alvo_len elementos, alinhando pelo fim."""
-    alinhadas = []
-    for s in series:
-        if len(s) > alvo_len:
-            alinhadas.append(s[-alvo_len:])
-        elif len(s) < alvo_len:
-            alinhadas.append([math.nan] * (alvo_len - len(s)) + list(s))
-        else:
-            alinhadas.append(list(s))
-    return alinhadas
-
-
-# ===================== FUNÇÕES AUXILIARES MAPA DE CALOR GPS (ABA 2) =====================
 def calcular_distancia_haversine_m(lat1, lon1, lat2, lon2):
     """Calcula a distância horizontal em metros (fórmula de Haversine)."""
     raio_terra_m = 6371000.0
@@ -247,33 +178,36 @@ def _aplicar_vista_superior(ax, lat_ref, lon_c, lat_c, span_x, span_y, angulo_de
     ax.set_ylim(lat_c - ext_y / 2, lat_c + ext_y / 2)
 
 
-# ===================== CLASSE DA ABA 2: MAPA DE CALOR GPS 2D =====================
-class PainelMapaCalorGPS:
+class AplicacaoN6GPS:
     MODOS_VISUALIZACAO = ["Calor + Pontos", "Só Calor", "Só Pontos"]
 
-    def __init__(self, parent_frame, raiz):
-        self.parent = parent_frame
+    def __init__(self, raiz):
         self.raiz = raiz
+        self.raiz.title(" MAPA DE CALOR LoRa-LoRaWAN [RSSI & SNR] | COBERTURA LoRa-LoRaWAN ")
+        self.raiz.geometry("1366x800")
+        self.raiz.minsize(1140, 700)
 
         self.auto_refresh_var = tk.BooleanVar(value=False)
         self.tipo_mapa_var = tk.StringVar(value="m")
         self.modo_vis_var = tk.StringVar(value="Calor + Pontos")
         self.raio_max_m_var = tk.StringVar(value="1000")
+        self.csv_selecionado_var = tk.StringVar(value="")
         self.status_csv_var = tk.StringVar(value="CSV: Nenhum carregado")
         self.status_gw_var = tk.StringVar(value="Distância Nó -> GW: --")
 
         self._construir_painel_gateway()
         self._construir_abas_mapas()
         self._carregar_gw_gps_salvo()
+        self.atualizar_mapas()
         self._agendar_atualizacao()
 
     def _construir_painel_gateway(self):
         frame_gw = ttk.LabelFrame(
-            self.parent,
+            self.raiz,
             text=" Posição GPS do Gateway LoRa (Salvo em .../4_N4_Armazenamento/Parametros/GW_GPS.txt) ",
-            padding=(8, 4),
+            padding=(8, 6),
         )
-        frame_gw.pack(fill="x", padx=10, pady=(6, 2))
+        frame_gw.pack(fill="x", padx=10, pady=(8, 4))
 
         ttk.Label(frame_gw, text="Lat (°):").pack(side="left", padx=(2, 2))
         self.entry_gw_lat = ttk.Entry(frame_gw, width=12)
@@ -326,6 +260,11 @@ class PainelMapaCalorGPS:
         )
         chk_auto.pack(side="left", padx=(0, 6))
 
+        btn_importar_csv = ttk.Button(
+            frame_gw, text="Importar CSV", command=self.importar_csv
+        )
+        btn_importar_csv.pack(side="left", padx=(0, 4))
+
         btn_atualizar = ttk.Button(
             frame_gw, text="Atualizar", command=self.atualizar_mapas
         )
@@ -336,26 +275,26 @@ class PainelMapaCalorGPS:
         )
         btn_exportar.pack(side="right")
 
-        frame_status = tk.Frame(self.parent)
-        frame_status.pack(fill="x", padx=12, pady=(0, 2))
+        frame_status = tk.Frame(self.raiz)
+        frame_status.pack(fill="x", padx=12, pady=(0, 4))
         ttk.Label(frame_status, textvariable=self.status_csv_var).pack(side="left")
         ttk.Label(frame_status, textvariable=self.status_gw_var).pack(side="right")
 
     def _construir_abas_mapas(self):
-        self.notebook_mapas = ttk.Notebook(self.parent)
-        self.notebook_mapas.pack(fill="both", expand=True, padx=10, pady=(0, 8))
+        self.notebook = ttk.Notebook(self.raiz)
+        self.notebook.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
-        self.aba_rssi = ttk.Frame(self.notebook_mapas)
-        self.notebook_mapas.add(self.aba_rssi, text="  Mapa de Calor — RSSI UPLINK  ")
-        self.fig_rssi = Figure(figsize=(11, 5.2), dpi=100)
+        self.aba_rssi = ttk.Frame(self.notebook)
+        self.notebook.add(self.aba_rssi, text="  Mapa de Calor — RSSI UPLINK  ")
+        self.fig_rssi = Figure(figsize=(11, 5.5), dpi=100)
         self.ax_rssi = self.fig_rssi.add_subplot(111)
         self.canvas_rssi, self.cbar_rssi = self._montar_canvas_aba(
             self.aba_rssi, self.fig_rssi, self.ax_rssi, "RSSI UPLINK (dBm)"
         )
 
-        self.aba_snr = ttk.Frame(self.notebook_mapas)
-        self.notebook_mapas.add(self.aba_snr, text="  Mapa de Calor — SNR UPLINK  ")
-        self.fig_snr = Figure(figsize=(11, 5.2), dpi=100)
+        self.aba_snr = ttk.Frame(self.notebook)
+        self.notebook.add(self.aba_snr, text="  Mapa de Calor — SNR UPLINK  ")
+        self.fig_snr = Figure(figsize=(11, 5.5), dpi=100)
         self.ax_snr = self.fig_snr.add_subplot(111)
         self.canvas_snr, self.cbar_snr = self._montar_canvas_aba(
             self.aba_snr, self.fig_snr, self.ax_snr, "SNR UPLINK (dB)"
@@ -432,29 +371,70 @@ class PainelMapaCalorGPS:
         except Exception as e:
             messagebox.showerror("Erro ao Salvar", f"Não foi possível salvar GW_GPS.txt:\n{e}")
 
-    def _obter_ultimo_csv_n5(self):
+    def importar_csv(self):
+        """Abre diálogo para importar um arquivo CSV e gerar o mapa de calor."""
+        pasta_inicial = PASTA_PROCESSADOS if os.path.isdir(PASTA_PROCESSADOS) else os.getcwd()
+        caminho = filedialog.askopenfilename(
+            title="Importar Arquivo CSV para Mapa de Calor",
+            initialdir=pasta_inicial,
+            filetypes=[
+                ("Arquivos CSV", "*.csv"),
+                ("Todos os arquivos", "*.*"),
+            ],
+        )
+        if not caminho:
+            return
+
+        self.csv_selecionado_var.set(caminho)
+        self.auto_refresh_var.set(False)
+        self.atualizar_mapas()
+
+    def _obter_csv_ativo(self):
+        """Retorna (caminho_csv, modo_origem) priorizando CSV importado manualmente."""
+        csv_manual = self.csv_selecionado_var.get().strip()
+        if csv_manual:
+            if os.path.exists(csv_manual):
+                return csv_manual, "Manual"
+            return None, "Manual"
+
         padrao = os.path.join(PASTA_PROCESSADOS, "Rodada_Gerencia_*.csv")
         arquivos = glob.glob(padrao)
         if not arquivos:
-            return None
+            return None, "Auto"
         arquivos.sort(key=os.path.getmtime)
-        return arquivos[-1]
+        return arquivos[-1], "Auto"
+
+    def _encontrar_coluna(self, colunas, candidatas):
+        mapa_lower = {str(c).strip().lower(): c for c in colunas}
+        for cand in candidatas:
+            chave = cand.strip().lower()
+            if chave in mapa_lower:
+                return mapa_lower[chave]
+        for col in colunas:
+            col_l = str(col).strip().lower()
+            if any(cand.strip().lower() in col_l for cand in candidatas):
+                return col
+        return None
 
     def _ler_dados_validos_csv(self, caminho_csv):
         df = pd.read_csv(caminho_csv, sep=";", decimal=",", dtype=str)
-        if df.empty:
+        if df.shape[1] < 3:
+            df = pd.read_csv(caminho_csv, sep=",", decimal=".", dtype=str)
+        if df.empty or df.shape[1] < 3:
             return pd.DataFrame()
 
-        col_lat = df.columns[-3]
-        col_lon = df.columns[-2]
-        col_alt = df.columns[-1]
+        col_rssi = self._encontrar_coluna(df.columns, ["RSSI_Uplink", "rssi_uplink", "rssi"])
+        col_snr = self._encontrar_coluna(df.columns, ["SNR_Uplink", "snr_uplink", "snr"])
+        col_lat = self._encontrar_coluna(df.columns, ["LATITUDE", "latitude", "lat"]) or df.columns[-3]
+        col_lon = self._encontrar_coluna(df.columns, ["LONGITUDE", "longitude", "lon", "lng"]) or df.columns[-2]
+        col_alt = self._encontrar_coluna(df.columns, ["ALTITUDE", "altitude", "alt"]) or df.columns[-1]
 
         out = pd.DataFrame()
-        out["RSSI_Uplink"] = df["RSSI_Uplink"].apply(self._parse_float) if "RSSI_Uplink" in df.columns else np.nan
-        out["SNR_Uplink"] = df["SNR_Uplink"].apply(self._parse_float) if "SNR_Uplink" in df.columns else np.nan
+        out["RSSI_Uplink"] = df[col_rssi].apply(self._parse_float) if col_rssi is not None else np.nan
+        out["SNR_Uplink"] = df[col_snr].apply(self._parse_float) if col_snr is not None else np.nan
         out["LATITUDE"] = df[col_lat].apply(self._parse_float)
         out["LONGITUDE"] = df[col_lon].apply(self._parse_float)
-        out["ALTITUDE"] = df[col_alt].apply(self._parse_float)
+        out["ALTITUDE"] = df[col_alt].apply(self._parse_float) if col_alt is not None else np.nan
 
         valido = out.dropna(subset=["RSSI_Uplink", "SNR_Uplink", "LATITUDE", "LONGITUDE"]).copy()
         valido = valido[
@@ -465,10 +445,7 @@ class PainelMapaCalorGPS:
         return valido.reset_index(drop=True)
 
     def _plotar_circulos_distancia_gw(self, ax, gw_lat, gw_lon, span_m):
-        """
-        Desenha círculos de distância concêntricos em torno da posição do Gateway
-        com etiquetas posicionadas no sentido oposto (do centro para o canto inferior esquerdo: 225° / 5*pi/4).
-        """
+        """Desenha círculos de distância concêntricos em torno da posição do Gateway."""
         if span_m <= 150:
             raios = [25, 50, 100, 150]
         elif span_m <= 400:
@@ -490,7 +467,7 @@ class PainelMapaCalorGPS:
         # angulo_rotulo = math.pi / 4.0 # 45º
 
         angulo_rotulo = 5.0 * math.pi / 4.0 # 225º
-        
+
         for r_m in raios:
             dlat = r_m / metros_por_lat
             dlon = r_m / metros_por_lon
@@ -506,14 +483,14 @@ class PainelMapaCalorGPS:
                 zorder=4,
             )
             ax.text(
+                #gw_lon + dlon * math.cos(math.pi / 4.0),
+                #gw_lat + dlat * math.sin(math.pi / 4.0),
                 gw_lon + dlon * math.cos(angulo_rotulo),
-                gw_lat + dlat * math.sin(angulo_rotulo),
+                gw_lat + dlat * math.sin(angulo_rotulo),                
                 f"{r_m} m",
                 fontsize=7.5,
                 fontweight="bold",
                 color="#111111",
-                ha="right",
-                va="top",
                 bbox=dict(boxstyle="round,pad=0.15", fc="#FFFFFF", ec="none", alpha=0.75),
                 zorder=4,
             )
@@ -669,7 +646,9 @@ class PainelMapaCalorGPS:
         ax.set_xlim(cx - span_x * 0.65, cx + span_x * 0.65)
         ax.set_ylim(cy - span_y * 0.65, cy + span_y * 0.65)
 
-        _aplicar_vista_superior(ax, cy, cx, cy, span_x, span_y)
+        _aplicar_vista_superior(
+            ax, cy, cx, cy, span_x, span_y,
+        )
 
         if fundo_extent is not None:
             w, e, s, n = fundo_extent
@@ -700,17 +679,22 @@ class PainelMapaCalorGPS:
         if modo not in self.MODOS_VISUALIZACAO:
             modo = "Calor + Pontos"
 
-        csv_path = self._obter_ultimo_csv_n5()
+        csv_path, origem_csv = self._obter_csv_ativo()
         if not csv_path:
-            self.status_csv_var.set("CSV: Nenhum Rodada_Gerencia_*.csv encontrado em Dados_Processados")
+            if origem_csv == "Manual":
+                self.status_csv_var.set("CSV [Manual]: Arquivo não encontrado")
+            else:
+                self.status_csv_var.set("CSV [Auto]: Nenhum Rodada_Gerencia_*.csv encontrado em Dados_Processados")
             return
 
-        self.status_csv_var.set(f"CSV: {os.path.basename(csv_path)}")
+        self.status_csv_var.set(f"CSV [{origem_csv}]: {os.path.basename(csv_path)}")
 
         try:
             df = self._ler_dados_validos_csv(csv_path)
         except Exception as e:
-            self.status_csv_var.set(f"CSV: Erro ao ler ({e})")
+            self.status_csv_var.set(f"CSV [{origem_csv}]: Erro ao ler ({e})")
+            if origem_csv == "Manual":
+                messagebox.showerror("Erro ao Importar CSV", f"Não foi possível processar o arquivo:\n{e}")
             return
 
         if not df.empty:
@@ -802,274 +786,15 @@ class PainelMapaCalorGPS:
         self.raiz.after(10000, self._agendar_atualizacao)
 
 
-# ===================== INTERFACE PRINCIPAL UNIFICADA =====================
 def main():
     raiz = tk.Tk()
-    raiz.title("NÍVEL 6 - GERÊNCIA DE REDE, CONFIGURAÇÃO & MAPA DE CALOR GPS")
-    raiz.geometry("1366x800")
-    raiz.minsize(1150, 700)
+    app = AplicacaoN6GPS(raiz)
 
-    notebook_principal = ttk.Notebook(raiz)
-    notebook_principal.pack(fill="both", expand=True, padx=6, pady=6)
-
-    # -------------------------------------------------------------------------
-    # ABA 1: GERÊNCIA [RSSI, SNR e PSR] (Original N6_Gerencia_UL_Vs2)
-    # -------------------------------------------------------------------------
-    aba_gerencia = ttk.Frame(notebook_principal)
-    notebook_principal.add(aba_gerencia, text="  Gerência [RSSI, SNR e PSR]  ")
-
-    # Painel Topo: RSSI & Máx/Mín/Média/DesvPad
-    frame_topo = tk.Frame(aba_gerencia)
-    frame_topo.pack(fill="x", padx=10, pady=2)
-
-    label_up = tk.Label(frame_topo, text="RSSI UL: --", font=("Arial", 8, "bold"), bg=cor_rssi_up, fg="white", width=18)
-    label_up.pack(side="left", padx=2)
-
-    label_estat_rssi = tk.Label(frame_topo, text="MM Média: -- | Máx: -- | Mín: -- | DesvPad: --", font=("Arial", 8), fg="#333333")
-    label_estat_rssi.pack(side="left", padx=10)
-
-    tk.Label(frame_topo, text="Janela RSSI:", font=("Arial", 8)).pack(side="left", padx=(15, 2))
-    entry_janela_rssi = tk.Entry(frame_topo, width=5, font=("Arial", 8))
-    entry_janela_rssi.insert(0, "10")
-    entry_janela_rssi.pack(side="left")
-
-    def salvar_graficos_gerencia(fig1, fig2, fig3):
-        arquivo = filedialog.asksaveasfilename(defaultextension=".png")
-        if arquivo:
-            fig1.savefig(arquivo.replace(".png", "_rssi.png"))
-            fig2.savefig(arquivo.replace(".png", "_snr.png"))
-            fig3.savefig(arquivo.replace(".png", "_psr.png"))
-            messagebox.showinfo("Sucesso", "Gráficos salvos com sucesso!")
-
-    btn_salvar = tk.Button(
-        frame_topo,
-        text="Salvar Gráficos",
-        font=("Arial", 8, "bold"),
-        command=lambda: salvar_graficos_gerencia(fig1, fig2, fig3),
-    )
-    btn_salvar.pack(side="right", padx=2)
-
-    # --- GRÁFICO RSSI ---
-    frame_rssi = tk.Frame(aba_gerencia)
-    frame_rssi.pack(fill="both", expand=True, padx=10, pady=1)
-
-    fig1 = Figure(figsize=(10, 2.0), dpi=100)
-    ax1 = fig1.add_subplot(111)
-    fig1.subplots_adjust(left=0.05, right=0.98, top=0.86, bottom=0.16)
-    canvas1 = FigureCanvasTkAgg(fig1, master=frame_rssi)
-    canvas1.get_tk_widget().pack(fill="both", expand=True)
-
-    # Painel SNR & Máx/Mín/Média/DesvPad
-    frame_labels_snr = tk.Frame(aba_gerencia)
-    frame_labels_snr.pack(fill="x", padx=10, pady=2)
-
-    label_snr_up = tk.Label(frame_labels_snr, text="SNR UL: --", font=("Arial", 8, "bold"), bg=cor_snr_up, fg="white", width=18)
-    label_snr_up.pack(side="left", padx=2)
-
-    label_estat_snr = tk.Label(frame_labels_snr, text="MM Média: -- | Máx: -- | Mín: -- | DesvPad: --", font=("Arial", 8), fg="#333333")
-    label_estat_snr.pack(side="left", padx=10)
-
-    tk.Label(frame_labels_snr, text="Janela SNR:", font=("Arial", 8)).pack(side="left", padx=(15, 2))
-    entry_janela_snr = tk.Entry(frame_labels_snr, width=5, font=("Arial", 8))
-    entry_janela_snr.insert(0, "10")
-    entry_janela_snr.pack(side="left")
-
-    # --- GRÁFICO SNR ---
-    frame_snr = tk.Frame(aba_gerencia)
-    frame_snr.pack(fill="both", expand=True, padx=10, pady=1)
-
-    fig2 = Figure(figsize=(10, 2.0), dpi=100)
-    ax2 = fig2.add_subplot(111)
-    fig2.subplots_adjust(left=0.05, right=0.98, top=0.86, bottom=0.16)
-    canvas2 = FigureCanvasTkAgg(fig2, master=frame_snr)
-    canvas2.get_tk_widget().pack(fill="both", expand=True)
-
-    # Painel PSR & Limiar
-    frame_label_psr = tk.Frame(aba_gerencia)
-    frame_label_psr.pack(fill="x", padx=10, pady=2)
-
-    label_psr = tk.Label(frame_label_psr, text="PSR atual: --", font=("Arial", 8, "bold"), bg=cor_psr, fg="white", width=18)
-    label_psr.pack(side="left", padx=2)
-
-    label_perdidos = tk.Label(frame_label_psr, text="Pacotes Perdidos: --", font=("Arial", 8, "bold"), fg="#d62728")
-    label_perdidos.pack(side="left", padx=15)
-
-    tk.Label(frame_label_psr, text="Limiar PSR (%):", font=("Arial", 8)).pack(side="left", padx=(15, 2))
-    entry_limiar_psr = tk.Entry(frame_label_psr, width=6, font=("Arial", 8))
-    entry_limiar_psr.insert(0, "95")
-    entry_limiar_psr.pack(side="left")
-
-    # --- GRÁFICO PSR ---
-    frame_psr = tk.Frame(aba_gerencia)
-    frame_psr.pack(fill="both", expand=True, padx=10, pady=1)
-
-    fig3 = Figure(figsize=(10, 2.0), dpi=100)
-    ax3 = fig3.add_subplot(111)
-    fig3.subplots_adjust(left=0.05, right=0.98, top=0.84, bottom=0.20)
-    canvas3 = FigureCanvasTkAgg(fig3, master=frame_psr)
-    canvas3.get_tk_widget().pack(fill="both", expand=True)
-
-    def atualizar_grafico_gerencia():
-        rssi_up, rssi_ma = [], []
-        snr_up, snr_ma = [], []
-        psr = []
-        pacotes_perdidos_lista = []
-
-        salvar_parametros_n5(entry_janela_rssi, entry_janela_snr)
-
-        padrao_busca = os.path.join(PASTA_PROCESSADOS, "Rodada_Gerencia_*.csv")
-        arquivos_csv = glob.glob(padrao_busca)
-
-        if arquivos_csv:
-            arquivos_csv.sort(key=os.path.getmtime)
-            ultimo_csv = arquivos_csv[-1]
-
-            if ultimo_csv != arquivo_csv_atual_ref["caminho"]:
-                arquivo_csv_atual_ref["caminho"] = ultimo_csv
-
-            try:
-                with open(arquivo_csv_atual_ref["caminho"], "r", encoding="utf-8") as f:
-                    linhas = f.readlines()
-                    for linha in linhas[1:]:
-                        linha = linha.strip()
-                        if not linha:
-                            continue
-                        try:
-                            partes = linha.split(";")
-                            r_up_val = _parse_float_ou_nan(partes[1]) if len(partes) > 1 else math.nan
-                            s_up_val = _parse_float_ou_nan(partes[3]) if len(partes) > 3 else math.nan
-                            p_val = _parse_float_ou_nan(partes[4]) if len(partes) > 4 else math.nan
-                            r_ma_val = _parse_float_ou_nan(partes[5]) if len(partes) > 5 else math.nan
-                            s_ma_val = _parse_float_ou_nan(partes[6]) if len(partes) > 6 else math.nan
-                            p_perd_val = _parse_float_ou_nan(partes[7]) if len(partes) > 7 else math.nan
-
-                            rssi_up.append(r_up_val)
-                            snr_up.append(s_up_val)
-                            psr.append(p_val)
-                            rssi_ma.append(r_ma_val)
-                            snr_ma.append(s_ma_val)
-                            if not math.isnan(p_perd_val):
-                                pacotes_perdidos_lista.append(int(p_perd_val))
-                        except Exception:
-                            pass
-            except (PermissionError, FileNotFoundError):
-                pass
-
-        max_len_bruto = max(
-            len(rssi_up), len(rssi_ma), len(snr_up), len(snr_ma), len(psr), 0
-        )
-        alvo_len = min(max_len_bruto, MAX_PONTOS)
-        rssi_up, rssi_ma, snr_up, snr_ma, psr = _alinhar_comprimentos(
-            [rssi_up, rssi_ma, snr_up, snr_ma, psr], alvo_len
-        )
-
-        x_idx = list(range(alvo_len))
-        x_lim = (0, max(alvo_len - 1, 1)) if alvo_len > 0 else (0, 1)
-
-        rssi_up_validos = _valores_validos(rssi_up)
-        snr_up_validos = _valores_validos(snr_up)
-        psr_validos = _valores_validos(psr)
-
-        label_up.config(text=f"RSSI UL: {round(rssi_up_validos[-1], 2)} dBm" if rssi_up_validos else "RSSI UL: --")
-        label_snr_up.config(text=f"SNR UL: {round(snr_up_validos[-1], 2)} dB" if snr_up_validos else "SNR UL: --")
-        label_psr.config(text=f"PSR atual: {round(psr_validos[-1], 2)} %" if psr_validos else "PSR atual: --")
-        label_perdidos.config(text=f"Pacotes Perdidos: {pacotes_perdidos_lista[-1]}" if pacotes_perdidos_lista else "Pacotes Perdidos: --")
-
-        med_r, desv_r, max_r, min_r = calcular_estatisticas_completas(rssi_ma)
-        med_s, desv_s, max_s, min_s = calcular_estatisticas_completas(snr_ma)
-
-        label_estat_rssi.config(
-            text=f"Média: {med_r:.2f} dBm    |    Máx: {max_r:.2f} dBm    |    Mín: {min_r:.2f} dBm    |    Desvio Padrão: {desv_r:.2f} dB"
-        )
-        label_estat_snr.config(
-            text=f"Média: {med_s:.2f} dB    |    Máx: {max_s:.2f} dB    |    Mín: {min_s:.2f} dB    |    Desvio Padrão: {desv_s:.2f} dB"
-        )
-
-        # --- GRÁFICO 1: RSSI ---
-        ax1.clear()
-        ax1.margins(x=0)
-        rssi_ma_validos = _valores_validos(rssi_ma)
-
-        if rssi_up_validos:
-            ax1.plot(x_idx, rssi_up, label="RSSI Bruto (dBm)", linewidth=1.2, alpha=0.5, color=cor_rssi_up)
-        if rssi_ma_validos:
-            ax1.plot(x_idx, rssi_ma, label="Média Móvel (dB)", linewidth=1.2, color=cor_rssi_ma)
-        if rssi_up_validos or rssi_ma_validos:
-            ax1.legend(loc="upper right", fontsize=7)
-            todos_rssi = rssi_up_validos + rssi_ma_validos
-            val_min, val_max = min(todos_rssi), max(todos_rssi)
-            margem = max(5.0, (val_max - val_min) * 0.10)
-            ax1.set_ylim(val_min - margem, val_max + margem)
-
-        ax1.set_xlim(*x_lim)
-        ax1.set_title("RSSI LoRa (Uplink)", fontsize=9, pad=2)
-        ax1.set_ylabel("RSSI (dBm)", fontsize=7)
-        ax1.tick_params(labelsize=6)
-
-        # --- GRÁFICO 2: SNR ---
-        ax2.clear()
-        ax2.margins(x=0)
-        snr_ma_validos = _valores_validos(snr_ma)
-
-        if snr_up_validos:
-            ax2.plot(x_idx, snr_up, label="SNR Bruto (dB)", linewidth=1.2, alpha=0.5, color=cor_snr_up)
-        if snr_ma_validos:
-            ax2.plot(x_idx, snr_ma, label="Média Móvel (dB)", linewidth=1.2, color=cor_snr_ma)
-        if snr_up_validos or snr_ma_validos:
-            ax2.legend(loc="upper right", fontsize=7)
-            todos_snr = snr_up_validos + snr_ma_validos
-            val_min, val_max = min(todos_snr), max(todos_snr)
-            margem = max(5.0, (val_max - val_min) * 0.10)
-            ax2.set_ylim(val_min - margem, val_max + margem)
-
-        ax2.set_xlim(*x_lim)
-        ax2.set_title("SNR LoRa (Uplink)", fontsize=9, pad=2)
-        ax2.set_ylabel("SNR (dB)", fontsize=7)
-        ax2.tick_params(labelsize=6)
-
-        # --- GRÁFICO 3: PSR + LIMIAR ---
-        ax3.clear()
-        ax3.margins(x=0)
-
-        try:
-            limiar_val = float(entry_limiar_psr.get().replace(",", "."))
-        except ValueError:
-            limiar_val = 95.0
-
-        if psr_validos:
-            ax3.plot(x_idx, psr, label="PSR (%)", linewidth=1.8, color=cor_psr)
-            ax3.axhline(y=limiar_val, color="red", linestyle="--", linewidth=1.0, label=f"Limiar ({limiar_val}%)")
-            ax3.legend(loc="lower right", fontsize=7)
-            val_min, val_max = min(psr_validos), max(psr_validos)
-            margem = max(5.0, (val_max - val_min) * 0.10)
-            ax3.set_ylim(max(0, val_min - margem), min(105, val_max + margem))
-
-        ax3.set_xlim(*x_lim)
-        ax3.set_title("Packet Success Rate - PSR", fontsize=9, pad=2)
-        ax3.set_ylabel("PSR (%)", fontsize=7)
-        ax3.set_xlabel("Amostras", fontsize=7)
-        ax3.tick_params(labelsize=6)
-
-        canvas1.draw()
-        canvas2.draw()
-        canvas3.draw()
-        raiz.after(1000, atualizar_grafico_gerencia)
-
-    # -------------------------------------------------------------------------
-    # ABA 2: MAPA DE CALOR GPS 2D [RSSI & SNR] (Integrado de N6_Mapa_Calor)
-    # -------------------------------------------------------------------------
-    aba_mapa_calor = ttk.Frame(notebook_principal)
-    notebook_principal.add(aba_mapa_calor, text="  Mapa de Calor GPS 2D [RSSI & SNR]  ")
-    painel_mapa = PainelMapaCalorGPS(aba_mapa_calor, raiz)
-
-    # Inicia loop da Aba 1
-    atualizar_grafico_gerencia()
-
-    def fechar_janela():
-        if messagebox.askokcancel("Sair", "Deseja fechar o monitor de gerência e mapa de calor?"):
+    def ao_fechar():
+        if messagebox.askokcancel("Sair", "Deseja encerrar o N6_Mapa_Calor?"):
             raiz.destroy()
 
-    raiz.protocol("WM_DELETE_WINDOW", fechar_janela)
+    raiz.protocol("WM_DELETE_WINDOW", ao_fechar)
     raiz.mainloop()
 
 
